@@ -61,9 +61,41 @@ switch($cup){
 	case "rainbow":
 		$league = 'Rainbow Cup';
 		break;
-		
+
 	case "jungle":
 		$league = 'Jungle Cup';
+		break;
+
+	case "safari":
+		$league = 'Safari Cup';
+		break;
+
+	case "fantasy":
+		$league = 'Fantasy Cup';
+		break;
+
+	case "sinister":
+		$league = 'Sinister Cup';
+		break;
+
+	case "ferocious":
+		$league = 'Ferocious Cup';
+		break;
+
+	case "timeless":
+		$league = 'Timeless Cup';
+		break;
+
+	case "fusion":
+		$league = 'Fusion Cup';
+		break;
+
+	case "rose":
+		$league = 'Rose Cup';
+		break;
+
+	case "toxic":
+		$league = 'Toxic Cup';
 		break;
 }
 
@@ -81,31 +113,41 @@ require_once 'header.php';
 	<?php require 'modules/cupselect.php'; ?>
 
 	<div class="ranking-categories">
-		<a class="selected" href="#" data="overall">Overall</a>
-		<a href="#" data="leads">Leads</a>
-		<a href="#" data="closers">Closers</a>
-		<a href="#" data="attackers">Attackers</a>
-		<a href="#" data="defenders">Defenders</a>
+		<a class="selected" href="#" data="overall" scenario="leads">Overall</a>
+		<a href="#" data="leads" scenario="leads">Leads</a>
+		<a href="#" data="closers" scenario="closers">Closers</a>
+		<a href="#" data="switches" scenario="switches">Switches</a>
+		<a href="#" data="chargers" scenario="chargers">Chargers</a>
+		<a href="#" data="attackers" scenario="attackers">Attackers</a>
+		<a href="#" data="consistency" scenario="leads">Consistency</a>
 	</div>
 
 	<div class="clear"></div>
 
-	<p class="description overall"><b>The best Pokemon against top opponents in multiple roles.</b> They have the typing, moves, and stats to succeed against the top Pokemon in multiple scenarios.</p>
+	<p class="description overall"><b>The best Pokemon overall across multiple roles.</b> They have the typing, moves, and stats to succeed as top contendors.</p>
 
-	<p class="description closers hide"><b>The best Pokemon with no shields in play.</b> Good typing, stats, and efficient moves give them the advantage.</p>
+	<p class="description closers hide"><b>The best Pokemon with no shields in play.</b> Bulk or hard-hitting moves allow them to close out matchups.</p>
 
-	<p class="description leads hide"><b>The best Pokemon with shields in play.</b> Capable of pressuring the opponent with good coverage or resistances, they're ideal leads in battle.</p>
+	<p class="description leads hide"><b>The best Pokemon with shields in play.</b> Capable of applying pressure or winning extended fights, they're ideal leads in battle.</p>
 
-	<p class="description attackers hide"><b>The best Pokemon against shielded opponents, while unshielded.</b> Their natural bulk, resistances, and strong attacks allow them to succeed against sturdy defenses.</p>
+	<p class="description attackers hide"><b>The best Pokemon against shielded opponents, while unshielded.</b> Their natural bulk, resistances, and strong attacks allow them to power through a disadvantage.</p>
 
-	<p class="description defenders hide"><b>The best Pokemon while shielded, against unshielded opponents.</b> Able to absorb incredible damage, they can emerge victorious against top opponents.</p>
+	<p class="description switches hide"><b>The best Pokemon to switch to from an unfavorable lead.</b> These Pokemon have safe matchups and can pressure shields or deal heavy damage even in their losses.</p>
+
+	<p class="description chargers hide"><b>The best Pokemon with an energy advantage.</b> Fast energy gain or powerful moves make them dangerous after building up energy.</p>
+
+	<p class="description consistency hide"><b>These Pokemon perform the most dependably.</b> They provide consistent damage and rely less on baiting shields than other Pokemon.</p>
 
 	<p>Click or tap the rankings below for more details.</p>
 
 	<div class="check on limited hide"><span></span>Show <div class="limited-title">Limited Pokemon</div>*</div>
 	<div class="asterisk limited hide">* Only a limited number of these Pokemon can be selected per team.</div>
 
-	<input class="poke-search" context="ranking-search" type="text" placeholder="Search Pokemon Name or Type" />
+	<div class="poke-search-container">
+		<input class="poke-search" context="ranking-search" type="text" placeholder="Search Pokemon" />
+		<a href="#" class="search-info">i</a>
+	</div>
+
 
 	<div class="ranking-header">Pokemon</div>
 	<div class="ranking-header right">Score</div>
@@ -121,13 +163,14 @@ require_once 'header.php';
 		<p>As we improve our simulator and ranking algorithms, please note that exact rankings may change. They aren't set-in-stone fact, but a best guess at which Pokemon might or might not be good for Trainer Battles. Ultimately we hope the rankings here are a helpful resource in their own way, and help you build toward succcess.</p>
 		<h2>Using the Pokemon Rankings</h2>
 		<p>In the top-level rankings, you'll see a score for each Pokemon. This score is an overall performance number from 0 to 100, where 100 is the best Pokemon in that league and category. It is derived from simulating every possible matchup, with each Pokemon's most used moveset (these may be manually adjusted). Use this score to compare overall performance between Pokemon; for example, the difference between the #1 and #50 Pokemon may not be the same as the difference between the #50 and #100 Pokemon. This score also allows you to see the parity in different leagues and categories.</p>
-		<p>Trainer Battles feature a wide variety of scenarios, especially involving shields. In order to give a fuller picture, our overall rankings are derived from additional sets of rankings, where battles are simulated with different shield combinations. You can explore rankings for each of the following categories:</p>
+		<p>Trainer Battles feature a wide variety of scenarios, especially involving shields. In order to give a fuller picture, our overall rankings are derived from additional sets of rankings, where battles are simulated with different roles in mind. You can explore rankings for each of the following categories:</p>
 		<ul>
 			<li><b>Overall - </b> Derived from a Pokemon's score in all other categories. Moves are ranked based on usage in every category. Key Counters and Top Matchups, however, are taken from the Leads category.</li>
 			<li><b>Leads - </b> Ranking battles simulated with 2 shields vs. 2 shields.</li>
 			<li><b>Closers - </b> Ranking battles simulated with no shields vs. no shields.</li>
 			<li><b>Attackers - </b> Ranking battles simulated with no shields vs. 2 shields.</li>
 			<li><b>Defenders - </b> Ranking battles simulated with 2 shields vs. no shields.</li>
+			<li><b>Consistency - </b> Rating of how dependent Pokemon are at baiting shields.</li>
 		</ul>
 		<p>Different Pokemon may succeed in different scenarios, so use these categories to help determine when a particular Pokemon would be the most valuable.</p>
 		<p>Within each ranking, you'll see four separate detail sections:</p>
@@ -169,10 +212,57 @@ require_once 'header.php';
 	</div>
 </div>
 
+<?php require_once 'modules/search-string-help.php'; ?>
+
+<div class="details-template hide">
+	<div class="detail-section float margin">
+		<div class="ranking-header">Fast Moves</div>
+		<div class="ranking-header right">Usage</div>
+		<div class="moveset fast clear"></div>
+	</div>
+	<div class="detail-section float">
+		<div class="ranking-header">Charged Moves</div>
+		<div class="ranking-header right">Usage</div>
+		<div class="moveset charged clear"></div>
+	</div>
+	<div class="detail-section float margin">
+		<div class="ranking-header">Key Matchups</div>
+		<div class="ranking-header right">Battle Rating</div>
+		<div class="matchups clear"></div>
+	</div>
+	<div class="detail-section float">
+		<div class="ranking-header">Top Counters</div>
+		<div class="ranking-header right">Battle Rating</div>
+		<div class="counters clear"></div>
+	</div>
+	<div class="clear"></div>
+	<div class="detail-section stats">
+		<div class="rating-container">
+			<div class="ranking-header">Attack</div>
+			<div class="rating"></div>&nbsp;-
+			<div class="rating"></div>
+		</div>
+		<div class="rating-container">
+			<div class="ranking-header">Defense</div>
+			<div class="rating"></div>&nbsp;-
+			<div class="rating"></div>
+		</div>
+		<div class="rating-container">
+			<div class="ranking-header">Stamina</div>
+			<div class="rating"></div>&nbsp;-
+			<div class="rating"></div>
+		</div>
+	</div>
+	<div class="share-link detail-section"><input type="text" readonly="">
+		<div class="copy">Copy</div>
+	</div>
+</div>
+
 <!--test 2-->
 <script src="<?php echo $WEB_ROOT; ?>js/GameMaster.js?v=<?php echo $SITE_VERSION; ?>"></script>
 <script src="<?php echo $WEB_ROOT; ?>js/pokemon/Pokemon.js?v=<?php echo $SITE_VERSION; ?>"></script>
 <script src="<?php echo $WEB_ROOT; ?>js/interface/RankingInterface.js?v=<?php echo $SITE_VERSION; ?>"></script>
+<script src="<?php echo $WEB_ROOT; ?>js/interface/ModalWindow.js?v=<?php echo $SITE_VERSION; ?>"></script>
 <script src="<?php echo $WEB_ROOT; ?>js/interface/PokeSearch.js?v=<?php echo $SITE_VERSION; ?>"></script>
 <script src="<?php echo $WEB_ROOT; ?>js/battle/TimelineEvent.js?v=<?php echo $SITE_VERSION; ?>"></script>
 <script src="<?php echo $WEB_ROOT; ?>js/battle/Battle.js?v=<?php echo $SITE_VERSION; ?>"></script>

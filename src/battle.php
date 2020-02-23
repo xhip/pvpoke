@@ -26,14 +26,18 @@ require_once 'header.php';
 	<select class="mode-select">
 		<option value="single">Single Battle</option>
 		<option value="multi">Multi Battle</option>
+		<option value="matrix">Matrix Battle</option>
 	</select>
 	<p class="description single">Select two Pokemon from any league to fight a simulated battle. Customize movesets, levels, IV's, and shields.</p>
-	<p class="description multi hide">Battle one Pokemon against an entire league or cup. Explore overall performance or individual matchups.</p>
+	<p class="description multi hide">Battle one Pokemon against an entire league or cup. Explore overall performance or individual matchups against a group of Pokemon.</p>
+	<p class="description matrix hide">Battle two groups of Pokemon against each other and see a matrix of the results. Use this to explore mass matchups or compare different Pokemon, movesets, or IV's. You can change how the matrix results display on the <a href="<?php echo $WEB_ROOT; ?>settings/">Settings page</a>.</p>
+	<p class="description matrix hide"><i>Reminder: Simulating your opponent's specific Pokemon isn't allowed during Silph League Arena tournaments. Remember to prepare beforehand and follow timely play.</i></p>
 </div>
 
 <div class="section poke-select-container single">
 	<?php require 'modules/pokeselect.php'; ?>
 	<?php require 'modules/pokeselect.php'; ?>
+	<?php require 'modules/pokemultiselect.php'; ?>
 	<?php require 'modules/pokemultiselect.php'; ?>
 	<div class="clear"></div>
 </div>
@@ -164,6 +168,23 @@ require_once 'header.php';
 					<div class="golden-combination"></div>
 				</div>
 
+				<h2 class="center">Charged Move Ties</h2>
+
+				<div class="cmp-section">
+					<p>When two Charged Moves occur on the same turn, the Pokemon with the highest Attack stat goes first.</p>
+					<p><span class="name-attacker">Pokemon</span> can win Charged Move ties against this <span class="name-defender">Pokemon</span> with the following stats:</p>
+
+					<table class="stats-table cmp" cellspacing="0">
+						<tr>
+							<td><span class="name">Minimum Attack</span></td>
+							<td><span class="name">Attack to Guarantee</span></td>
+							<td><span class="name">Top Level &amp; IV's</span></td>
+						</tr>
+						<tbody class="output">
+						</tbody>
+					</table>
+				</div>
+
 				<h2 class="center">Battle Stats</h2>
 
 				<table class="stats-table" cellspacing="0">
@@ -291,7 +312,12 @@ require_once 'header.php';
 		<a class="toggle active" href="#">Individual Matchups <span class="arrow-down">&#9660;</span><span class="arrow-up">&#9650;</span></a>
 
 		<div class="toggle-content">
-			<input class="poke-search" context="ranking-search" type="text" placeholder="Search Pokemon Name or Type" />
+			<div class="poke-search-container">
+				<input class="poke-search" context="ranking-search" type="text" placeholder="Search Pokemon" />
+				<a href="#" class="search-info">i</a>
+
+				<button class="multi-battle-sort">Sort: Worst to best &#9650;</button>
+			</div>
 			<div class="ranking-header">Opponent</div>
 			<div class="ranking-header right">Battle Rating</div>
 			<div class="rankings-container clear"></div>
@@ -306,6 +332,18 @@ require_once 'header.php';
 				<input type="text" value="" readonly>
 				<div class="copy">Copy</div>
 			</div>
+		</div>
+	</div>
+
+	<div class="section white battle-results matrix article">
+		<a class="toggle active" href="#">Matchups <span class="arrow-down">&#9660;</span><span class="arrow-up">&#9650;</span></a>
+
+		<div class="toggle-content">
+			<div class="table-container">
+				<table class="matrix-table rating-table" cellspacing="0">
+				</table>
+			</div>
+			<a href="#" class="button download-csv">Export to CSV</a>
 		</div>
 	</div>
 </div>
@@ -349,6 +387,8 @@ require_once 'header.php';
 		<div class="button no">No</div>
 	</div>
 </div>
+
+<?php require_once 'modules/search-string-help.php'; ?>
 
 <!--test 2-->
 <script src="<?php echo $WEB_ROOT; ?>js/GameMaster.js?v=<?php echo $SITE_VERSION; ?>"></script>

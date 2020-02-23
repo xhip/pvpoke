@@ -21,11 +21,18 @@ var RankerMaster = (function () {
 
 			var moveSelectMode = "force";
 			var rankingData;
+			var allResults = []; // Array of all ranking results
 
 			var leagues = [1500];
-			var shields = [ [0,0], [1,1], [0,1], [1,0]];
+
+
+			// Ranking scenarios, energy is turns of advantage
+			var scenarios = GameMaster.getInstance().data.rankingScenarios;
+
 			var currentLeagueIndex = 0;
-			var currentShieldsIndex = 0;
+			var currentScenarioIndex = 0;
+
+			var startTime = 0; // For debugging and performance testing
 
 			var pokemonList = [];
 
@@ -33,7 +40,7 @@ var RankerMaster = (function () {
 
 			// Load override data
 
-			var file = webRoot+"data/rankingoverrides.json";
+			var file = webRoot+"data/rankingoverrides.json?v="+siteVersion;
 			var overrides = [];
 
 			$.getJSON( file, function( data ){
@@ -46,136 +53,59 @@ var RankerMaster = (function () {
 
 			// Load existing rankings to get best movesets
 
-			this.displayRankingData = function(data){
+			this.displayRankingData = function(data, callback){
 				rankingData = data;
-
-				console.log(rankingData);
 
 				self.initPokemonList(battle.getCP());
 
-				currentShieldsIndex = 0;
+				currentScenarioIndex = 0;
 
-				for(var currentShieldsIndex = 0; currentShieldsIndex < shields.length; currentShieldsIndex++){
-					self.rank(leagues[currentLeagueIndex], shields[currentShieldsIndex]);
+				for(currentScenarioIndex = 0; currentScenarioIndex < scenarios.length; currentScenarioIndex++){
+					var r = self.rank(leagues[currentLeagueIndex], scenarios[currentScenarioIndex]);
+					allResults.push(r);
 				}
+
+				callback(allResults);
 			}
 
 			this.initPokemonList = function(cp){
+				startTime = Date.now();
+
 				pokemonList = [];
 				var cup = battle.getCup();
 
 				// Gather all eligible Pokemon
 				battle.setCP(cp);
 
-				var minStats = 3000; // You must be this tall to ride this ride
-
-				if(battle.getCP() == 1500){
-					minStats = 1250;
-				} else if(battle.getCP() == 2500){
-					minStats = 2500;
+				if(moveSelectMode == "auto"){
+					pokemonList = gm.generateFilteredPokemonList(battle, cup.include, cup.exclude);
+				} else if(moveSelectMode == "force"){
+					pokemonList = gm.generateFilteredPokemonList(battle, cup.include, cup.exclude, rankingData, overrides);
 				}
 
-				// Don't allow these Pokemon into the Great League. They can't be trusted.
+				console.log("List generated in: " + (Date.now() - startTime));
 
-				var bannedList = ["mewtwo","mewtwo_armored","giratina_altered","groudon","kyogre","rayquaza","palkia","dialga","heatran","giratina_origin","darkrai"];
-				var permaBannedList = ["rotom","rotom_fan","rotom_frost","rotom_heat","rotom_mow","rotom_wash","regigigas","phione","manaphy","darkrai","shaymin_land","shaymin_sky","arceus","arceus_bug","arceus_dark","arceus_dragon","arceus_electric","arceus_fairy","arceus_fighting","arceus_fire","arceus_flying","arceus_ghost","arceus_grass","arceus_ground","arceus_ice","arceus_poison","arceus_psychic","arceus_rock","arceus_steel","arceus_water","kecleon"]; // Don't rank these Pokemon at all yet
-
-
-				if(cup.name == "nightmare"){
-					permaBannedList = permaBannedList.concat(["medicham","sableye","lugia","cresselia","deoxys","deoxys_attack","deoxys_defense","deoxys_speed","mew","celebi","latios","latias","uxie","mesprit","azelf","jirachi"]);
-				}
-
-				if(cup.name == "championships-1"){
-					permaBannedList = permaBannedList.concat(["lugia","cresselia","deoxys","deoxys_attack","deoxys_defense","deoxys_speed","mew","celebi","latios","latias","uxie","mesprit","azelf","melmetal","celebi","zapdos","articuno","moltres","suicune","entei","raikou","regirock","registeel","regice","ho_oh","jirachi"]);
-				}
-
-				if(cup.name == "jungle"){
-					permaBannedList = permaBannedList.concat(["tropius","wormadam_sandy","wormadam_plant","wormadam_trash","mothim"]);
-				}
-
-
-				// If you want to rank specfic Pokemon, you can enter their species id's here
-
-				var allowedList = [];
-
-				for(var i = 0; i < gm.data.pokemon.length; i++){
-
-					if(gm.data.pokemon[i].fastMoves.length > 0){ // Only add Pokemon that have move data
-						var pokemon = new Pokemon(gm.data.pokemon[i].speciesId, 0, battle);
-
-						pokemon.initialize(battle.getCP());
-
-						var stats = (pokemon.stats.hp * pokemon.stats.atk * pokemon.stats.def) / 1000;
-
-						if(stats >= minStats){
-
-							if((battle.getCP() == 1500)&&(bannedList.indexOf(pokemon.speciesId) > -1)){
-								continue;
-							}
-
-							if((allowedList.length > 0) && (allowedList.indexOf(pokemon.speciesId) == -1)){
-								continue;
-							}
-
-							if(permaBannedList.indexOf(pokemon.speciesId) > -1){
-								continue;
-							}
-
-							if((cup.name == "rainbow")&&( (pokemon.dex > 251) || (pokemon.speciesId.indexOf("alolan") > -1))){
-								continue;
-							}
-
-							if((cup.types.length > 0) && (cup.types.indexOf(pokemon.types[0]) < 0) && (cup.types.indexOf(pokemon.types[1]) < 0) ){
-								continue;
-							}
-
-							// If data is available, force "best" moveset
-
-							if((moveSelectMode == "force")&&(rankingData)){
-
-								// Find Pokemon in existing rankings
-
-								for(var n = 0; n < rankingData.length; n++){
-									if(pokemon.speciesId == rankingData[n].speciesId){
-
-										// Sort by uses
-										var fastMoves = rankingData[n].moves.fastMoves;
-										var chargedMoves = rankingData[n].moves.chargedMoves;
-
-										fastMoves.sort((a,b) => (a.uses > b.uses) ? -1 : ((b.uses > a.uses) ? 1 : 0));
-										chargedMoves.sort((a,b) => (a.uses > b.uses) ? -1 : ((b.uses > a.uses) ? 1 : 0));
-
-										pokemon.selectMove("fast", fastMoves[0].moveId);
-										pokemon.selectMove("charged", chargedMoves[0].moveId, 0);
-
-										pokemon.weightModifier = 1;
-
-										if(chargedMoves.length > 1){
-											pokemon.selectMove("charged", chargedMoves[1].moveId, 1);
-										}
-
-										self.overrideMoveset(pokemon, cp, cup.name);
-									}
-								}
-							}
-
-							pokemonList.push(pokemon);
-						}
-					}
-				}
 			}
 
 			// Run all ranking sets at once
 
-			this.rankLoop = function(cp, cup){
+			this.rankLoop = function(cp, cup, callback, data){
+
+				startTime = Date.now();
 
 				battle.setCP(cp);
-				battle.setCup(cup.name);
+				if(cup.name != "custom"){
+					battle.setCup(cup.name);
+				} else{
+					battle.setCustomCup(cup);
+				}
+
 
 				currentLeagueIndex = 0;
-				currentShieldsIndex = 0;
+				currentScenarioIndex = 0;
 
 				leagues = [cp];
+				allResults = [];
 
 				for(var currentLeagueIndex = 0; currentLeagueIndex < leagues.length; currentLeagueIndex++){
 
@@ -183,14 +113,19 @@ var RankerMaster = (function () {
 
 						self.initPokemonList(cp);
 
-						for(var currentShieldsIndex = 0; currentShieldsIndex < shields.length; currentShieldsIndex++){
-							rankingCombinations.push({league: leagues[currentLeagueIndex], shields: shields[currentShieldsIndex]});
+						for(currentScenarioIndex = 0; currentScenarioIndex < scenarios.length; currentScenarioIndex++){
+							rankingCombinations.push({league: leagues[currentLeagueIndex], scenario: scenarios[currentScenarioIndex]});
 						}
 
 					} else if(moveSelectMode == "force"){
 						// Load existing ranking data first
 
-						gm.loadRankingData(self, "overall", leagues[currentLeagueIndex], cup.name);
+						if(! data){
+							gm.loadRankingData(self, "overall", leagues[currentLeagueIndex], cup.name);
+						} else{
+							self.displayRankingData(data, callback);
+						}
+
 					}
 
 				}
@@ -201,9 +136,18 @@ var RankerMaster = (function () {
 					if((rankingCombinations.length == currentRankings)&&(rankingCombinations.length > 0)){
 						currentRankings--;
 
-						self.rank(rankingCombinations[0].league, rankingCombinations[0].shields);
+						startTime = Date.now();
+
+						var r = self.rank(rankingCombinations[0].league, rankingCombinations[0].scenario);
+						allResults.push(r);
+
+						console.log("Total time: " + (Date.now() - startTime));
 
 						rankingCombinations.splice(0, 1);
+
+						if(rankingCombinations.length == 0){
+							callback(allResults);
+						}
 					}
 				}, 1000);
 
@@ -211,13 +155,10 @@ var RankerMaster = (function () {
 
 			// Run an individual rank set
 
-			this.rank = function(league, shields){
-
+			this.rank = function(league, scenario){
 				var cup = battle.getCup();
 				var totalBattles = 0;
-				var shieldCounts = shields;
-
-				console.log(shieldCounts);
+				var shieldCounts = scenario.shields;
 
 				rankings = [];
 
@@ -255,7 +196,7 @@ var RankerMaster = (function () {
 
 							// When shields are the same, A vs B is the same as B vs A, so take the existing result
 
-							if((rankings[n].matches[i])&&(shieldCounts[0]==shieldCounts[1])){
+							if((rankings[n].matches[i])&&(shieldCounts[0]==shieldCounts[1])&&(scenario.energy[0] == scenario.energy[1])){
 
 								rankObj.matches.push({
 									opponent: opponent.speciesId,
@@ -291,7 +232,22 @@ var RankerMaster = (function () {
 						pokemon.setShields(shieldCounts[0]);
 						opponent.setShields(shieldCounts[1]);
 
+						// Set energy advantage
+						if(scenario.energy[0] == 0){
+							pokemon.startEnergy = 0;
+						} else{
+							pokemon.startEnergy = Math.min(pokemon.fastMove.energyGain * (Math.floor((scenario.energy[0] * 500) / pokemon.fastMove.cooldown)), 100);
+						}
+
+						if(scenario.energy[1] == 0){
+							opponent.startEnergy = 0;
+						} else{
+							opponent.startEnergy = Math.min(opponent.fastMove.energyGain * (Math.floor((scenario.energy[1] * 500) / opponent.fastMove.cooldown)), 100);
+						}
+
+
 						battle.simulate();
+
 
 						// Calculate Battle Rating for each Pokemon
 
@@ -379,6 +335,7 @@ var RankerMaster = (function () {
 					avg = Math.floor(avg / rankCount);
 
 					rankObj.rating = avg;
+					rankObj.scores = [avg];
 
 					// Push all moves into moveset
 
@@ -432,13 +389,8 @@ var RankerMaster = (function () {
 
 				// Doesn't make sense to weight which attackers can beat which other attackers, so don't weight those
 
-				if(shieldCounts[0] != shieldCounts[1]){
-					// iterations = 0;
-				}
-
-				for(var i = 0; i < rankCount; i++){
-					var rating = rankings[i].rating;
-					rankings[i].scores = [rating];
+				if((scenario.energy[0] != scenario.energy[1])||(scenario.shields[0] != scenario.shields[1])){
+					iterations = 1;
 				}
 
 				// Iterate through the rankings and weigh each matchup Battle Rating by the average rating of the opponent
@@ -453,6 +405,31 @@ var RankerMaster = (function () {
 
 				if(cup.name == "tempest"){
 					rankWeightExponent = 1.25;
+				}
+
+				if(cup.name == "toxic"){
+					iterations = 1;
+				}
+
+				if(cup.name == "rose"){
+					iterations = 1;
+				}
+
+				if((cup.name == "all")&&(battle.getCP() == 2500)){
+					iterations = 1;
+				}
+
+				if((cup.name == "all")&&(battle.getCP() == 1500)){
+					iterations = 1;
+				}
+
+				if(cup.name == "custom"){
+					iterations = 7;
+				}
+
+				// Do fewer or no iterations for a very small pool
+				if(rankings.length < 30){
+					iterations = 1;
 				}
 
 				for(var n = 0; n < iterations; n++){
@@ -477,6 +454,12 @@ var RankerMaster = (function () {
 
 							if(pokemonList[j].weightModifier){
 								weight *= pokemonList[j].weightModifier;
+							}
+
+							// For switches, punish hard losses more. The goal is to identify safe switches
+
+							if((scenario.slug == "switches")&&(matches[j].adjRating < 500)){
+								weight *= (1 + (Math.pow(500 - matches[j].adjRating, 2)/20000));
 							}
 
 							var sc = matches[j].adjRating * weight;
@@ -546,10 +529,6 @@ var RankerMaster = (function () {
 						for(var k = 0; k < rankingData.length; k++){
 							if(pokemon.speciesId == rankingData[k].speciesId){
 								rankings[i].moves = rankingData[k].moves;
-
-								if(pokemon.speciesId == "vigoroth"){
-									console.log(rankingData[k].moves);
-								}
 							}
 						}
 					} else{
@@ -574,7 +553,7 @@ var RankerMaster = (function () {
 
 					rankings[i].matches.sort((a,b) => (a.rating > b.rating) ? -1 : ((b.rating > a.rating) ? 1 : 0));
 
-					var matchupCount = 5;
+					var matchupCount = Math.min(5, rankings[i].matches.length);
 
 					// Gather 5 worst matchups for counters
 
@@ -633,94 +612,80 @@ var RankerMaster = (function () {
 				}
 
 				// Write rankings to file
+				if(cup.name != "custom"){
 
-				var category = "overall";
+					var category = scenario.slug;
 
-				if((shieldCounts[0] == 0) && (shieldCounts[1] == 0)){
-					category = "closers";
-				} else if((shieldCounts[0] == 1) && (shieldCounts[1] == 1)){
-					category = "leads";
-				} else if((shieldCounts[0] == 1) && (shieldCounts[1] == 0)){
-					category = "defenders";
-				} else if((shieldCounts[0] == 0) && (shieldCounts[1] == 1)){
-					category = "attackers";
+					var json = JSON.stringify(rankings);
+					var league = battle.getCP();
+
+					console.log(json);
+					console.log("/"+cup.name+"/"+category+"/rankings-"+league+".json");
+
+					$.ajax({
+
+						url : 'data/write.php',
+						type : 'POST',
+						data : {
+							'data' : json,
+							'league' : league,
+							'category' : category,
+							'cup': cup.name
+						},
+						dataType:'json',
+						success : function(data) {
+							console.log(data);
+						},
+						error : function(request,error)
+						{
+							console.log("Request: "+JSON.stringify(request));
+							console.log(error);
+						}
+					});
 				}
-
-				var json = JSON.stringify(rankings);
-				var league = battle.getCP();
-
-				console.log(json);
-				console.log("/"+cup.name+"/"+category+"/rankings-"+league+".json");
-
-				$.ajax({
-
-					url : 'data/write.php',
-					type : 'POST',
-					data : {
-						'data' : json,
-						'league' : league,
-						'category' : category,
-						'cup': cup.name
-					},
-					dataType:'json',
-					success : function(data) {
-						console.log(data);
-					},
-					error : function(request,error)
-					{
-						console.log("Request: "+JSON.stringify(request));
-						console.log(error);
-					}
-				});
 
 				return rankings;
 			}
 
-			// Override a Pokemon's moveset to be used in the rankings
+			// Set whether to autoselect moves or force a best moveset
 
-			this.overrideMoveset = function(pokemon, league, cup){
+			this.setMoveSelectMode = function(value){
+				moveSelectMode = value;
+			}
 
-				// Search eligible leagues and cups
+			// Return the current move select mode
+
+			this.getMoveSelectMode = function(){
+				return moveSelectMode;
+			}
+
+			// Set move overrides for a specific cup and league
+
+			this.setMoveOverrides = function(league, cup, values){
+				// Iterate through existing overrides and replace if already exists
+				var cupFound = false;
 
 				for(var i = 0; i < overrides.length; i++){
-
 					if((overrides[i].league == league)&&(overrides[i].cup == cup)){
-
-						// Iterate through Pokemon
-
-						var pokemonList = overrides[i].pokemon;
-
-						for(var n = 0; n < pokemonList.length; n++){
-							if(pokemonList[n].speciesId == pokemon.speciesId){
-
-								// Set Fast Move
-
-								if(pokemonList[n].fastMove){
-									pokemon.selectMove("fast", pokemonList[n].fastMove);
-								}
-
-								// Set Charged Moves
-
-								if(pokemonList[n].chargedMoves){
-									for(var j = 0; j < pokemonList[n].chargedMoves.length; j++){
-										pokemon.selectMove("charged", pokemonList[n].chargedMoves[j], j);
-									}
-
-								}
-
-								// Set weight modifier
-
-								if(pokemonList[n].weight){
-									pokemon.weightModifier = pokemonList[n].weight;
-								}
-
-								break;
-							}
-						}
-
-						break;
+						cupFound = true;
+						overrides[i].pokemon = values;
 					}
 				}
+
+				// If a cup wasn't found, add a new one
+				if(! cupFound){
+					overrides.push({
+						league: league,
+						cup: cup,
+						pokemon: values
+					})
+				}
+			}
+
+			// Set the scenarios to be ranked
+
+			this.setScenarioOverrides = function(arr){
+				scenarios = arr;
 			}
 
 			// Given a Pokemon, output a string of numbers for URL building

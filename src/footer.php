@@ -5,7 +5,15 @@
 		<p class="copyright">Version <a href="https://github.com/pvpoke/pvpoke/releases"><?php echo $SITE_VERSION; ?></a> &copy; 2019, released under the <a href="https://opensource.org/licenses/MIT" target="_blank">MIT license</a> | <a href="<?php echo $WEB_ROOT;?>privacy/">Privacy Policy</a></p>
 		<p>Pokémon and Pokémon GO are copyright of The Pokémon Company, Niantic, Inc., and Nintendo. All trademarked images and names are property of their respective owners, and any such material is used on this site for educational purposes only.</p>
 	</footer>
-	<img class="background" src="<?php echo $WEB_ROOT; ?>img/bg.jpg" />
+
+	<?php
+	$bgDir = '';
+
+	if((isset($_SETTINGS->theme))&&($_SETTINGS->theme != "default")){
+		$bgDir = '/themes/'.$_SETTINGS->theme.'/';
+	}
+	?>
+	<img class="background" src="<?php echo $WEB_ROOT; ?>img/<?php echo $bgDir; ?>bg.jpg" />
 	
 	<!--Global script-->
 	<script>
@@ -15,31 +23,15 @@
 		
 		// Submenu interaction on desktop
 		
-		$(".menu .more").on("mouseover click", function(e){
-			$(".submenu").addClass("active");
+		$(".menu .parent-menu").on("mouseover click", function(e){
+			$(this).find(".submenu").addClass("active");
 		});
 		
 		$("body").on("mousemove click", function(e){
-			if($(".submenu:hover, .more:hover").length == 0){
+			if($(".submenu:hover, .parent-menu:hover").length == 0){
 				$(".submenu").removeClass("active");
 			}
 		});
-		
-		
-		// If $_GET request exists, output as JSON into Javascript
-		
-		<?php
-		foreach($_GET as &$param){
-			$param = htmlspecialchars($param);
-		}
-		
-		
-		if($_GET){
-			echo 'var get = ' . json_encode($_GET) . ';';
-		} else{
-			echo 'var get = false;';
-		}
-		?>
 		
 		// Auto select link
 		
@@ -58,12 +50,49 @@
 		
 		// Toggleable sections
 		
-		$(".toggle").click(function(e){
+		$("body").on("click", ".toggle", function(e){
 			e.preventDefault();
 			
-			$(this).toggleClass("active");
+			$(e.target).closest(".toggle").toggleClass("active");
 		});
 		
+		// Service worker handler
+		if ('serviceWorker' in navigator) {
+			console.log("Attempting to register service worker");
+			navigator.serviceWorker.register('service-worker.js')
+			  .then(function(reg){
+				console.log("Service worker registered.");
+			  }).catch(function(err) {
+				console.log("Service worker failed to register:", err)
+			  });
+		}
+		
+		<?php if($performGroupMigration) : ?>
+			// One-time custom group migration from cookies to localstorage
+
+			var jsonToMigrate = [];
+
+			<?php
+			// Display custom groups
+
+			foreach($_COOKIE as $key=>$value){
+				if(strpos($key, 'custom_group') !== false){
+					$data = json_decode($value, true);
+
+					echo "jsonToMigrate.push({$value});";
+				}
+			}
+
+			?>
+
+			// Migrate custom groups to local storage
+		
+			for(var i = 0; i < jsonToMigrate.length; i++){
+				window.localStorage.setItem(jsonToMigrate[i].name, jsonToMigrate[i].data);
+			}
+
+		<?php endif; ?>
+
 	</script>
 </body>
 </html>

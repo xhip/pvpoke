@@ -29,6 +29,15 @@ require_once 'header.php'; ?>
 		<div class="supporter">ShinyHunterBen</div>
 		<div class="supporter">ElnetoCC</div>
 		<div class="supporter">RandomKashual</div>
+		<div class="supporter">KnightsOoofRen</div>
+		<div class="supporter">Vlaada</div>
+		<div class="supporter">FunkyGaaroth</div>
+		<div class="supporter">autonomyfairy</div>
+		<div class="supporter">JEngels21</div>
+		<div class="supporter">SparkSpencer</div>
+		<div class="supporter">Vexilus @PvPVexilus</div>
+
+
 	</div>
 
 	<h2 class="center">Master Supporters</h2>
@@ -39,8 +48,8 @@ require_once 'header.php'; ?>
 			<div class="supporter"><a href="https://www.youtube.com/channel/UCz0vZmmKHbGa1ZVNgJEw2bw" target="_blank">Elite Four TV</a></div>
 		</div>
 		<div class="supporter-container">
-			<div class="space"></div>
-			<div class="supporter"><a href="https://discord.gg/fbczGXZ" target="_blank">Pokemon GO PVP Discord</a></div>
+			<img src="<?php echo $WEB_ROOT; ?>img/sponsors/gostadium.jpg" />
+			<div class="supporter"><a href="https://discord.gg/fbczGXZ" target="_blank">GO Stadium Discord</a></div>
 		</div>
 
 		<div class="supporter-container">
@@ -71,6 +80,46 @@ require_once 'header.php'; ?>
 		<div class="supporter-container">
 			<img src="<?php echo $WEB_ROOT; ?>img/sponsors/iowa-arena.png" />
 			<div class="supporter"><a href="https://discord.gg/hF9pds8" target="_blank">Central Iowa Arena</a></div>
+		</div>
+		<div class="supporter-container">
+			<img src="<?php echo $WEB_ROOT; ?>img/sponsors/mdalliance.jpg" />
+			<div class="supporter"><a href="https://discord.gg/ehmgWTN" target="_blank">The MD PvP Alliance</a></div>
+		</div>
+		<div class="supporter-container">
+			<div class="space"></div>
+			<div class="supporter">GalronObadiah</div>
+		</div>
+		<div class="supporter-container">
+			<img src="<?php echo $WEB_ROOT; ?>img/sponsors/golive.jpg" />
+			<div class="supporter"><a href="https://www.twitch.tv/golive_pvp" target="_blank">amaced24</a></div>
+		</div>
+		<div class="supporter-container">
+			<img src="<?php echo $WEB_ROOT; ?>img/sponsors/coloseum.jpg" />
+			<div class="supporter"><a href="https://t.co/LZj6MBjpOe?amp=1" target="_blank">PoGo Colosseum Discord</a></div>
+		</div>
+		<div class="supporter-container">
+			<img src="<?php echo $WEB_ROOT; ?>img/sponsors/themistervalor.jpg" />
+			<div class="supporter"><a href="https://twitter.com/TheMisterValor" target="_blank">TheMisterValor</a></div>
+		</div>
+		<div class="supporter-container">
+			<img src="<?php echo $WEB_ROOT; ?>img/sponsors/vergyverg.jpg" width="85" height="85" />
+			<div class="supporter"><a href="https://www.youtube.com/channel/UCOeIQWAJYD-zy7T5-IRZy7Q" target="_blank">Vergyverg</a></div>
+		</div>
+		<div class="supporter-container">
+			<div class="space"></div>
+			<div class="supporter"><a href="https://twitter.com/PirateUnicornNK" target="_blank">Mark Pain</a></div>
+		</div>
+		<div class="supporter-container">
+			<img src="<?php echo $WEB_ROOT; ?>img/sponsors/pirateunicornnk.jpg" width="85" height="85" />
+			<div class="supporter"><a href="https://twitter.com/PirateUnicornNK" target="_blank">PirateUnicornNK</a></div>
+		</div>
+		<div class="supporter-container">
+			<div class="space"></div>
+			<div class="supporter"><a href="http://twitch.tv/rickeybot" target="_blank">Rickeybot</a></div>
+		</div>
+		<div class="supporter-container">
+			<img src="<?php echo $WEB_ROOT; ?>img/sponsors/wizap.jpg"/>
+			<div class="supporter"><a href="https://www.youtube.com/channel/UC77QyviuffB5xGKtAkn1XtQ" target="_blank">Wizap 7</a></div>
 		</div>
 	</div>
 </div>

@@ -46,7 +46,7 @@
 		<div class="clear"></div>
 
 		<div class="advanced-section">
-			<a class="advanced" href="#">Advanced <span class="arrow-down">&#9660;</span><span class="arrow-up">&#9650;</span></a>
+			<a class="advanced" href="#">Advanced Stats/IVs <span class="arrow-down">&#9660;</span><span class="arrow-up">&#9650;</span></a>
 			<div class="fields">
 
 				<div class="ivs">
@@ -63,6 +63,11 @@
 						<div class="check on" value="overall"><span></span>Overall</div>
 						<div class="check" value="atk"><span></span>Atk</div>
 						<div class="check" value="def"><span></span>Def</div>
+					</div>
+					<div class="level-cap-group">
+						<div>Level Cap:</div>
+						<div class="check on" value="40"><span></span>40</div>
+						<div class="check" value="41"><span></span>41</div>
 					</div>
 					<button class="maximize-stats">Maximize</button>
 					<button class="restore-default">Default</button>
@@ -92,7 +97,7 @@
 			<h3 class="section-title">Shields</h3>
 			<select class="shield-select">
 				<option value="0">No shields</option>
-				<option value="1">1 shield</option>
+				<option value="1" selected>1 shield</option>
 				<option value="2">2 shields</option>
 			</select>
 			<a href="#" class="section-title toggle">Options <span class="arrow-down">&#9660;</span><span class="arrow-up">&#9650;</span></a>
@@ -103,9 +108,9 @@
 				<div class="flex">
 					<div class="label">Energy:</div><input class="start-energy" type="number" min="0" max="100" placeholder="Starting Energy" />
 				</div>
+				<button class="add-fast-move">+ Move</button>
 				<button class="pull-from-timeline">Pull from timeline</button>
 				<div class="check shield-baiting on"><span></span>Bait shields with low-energy moves</div>
-				<div class="check priority"><span></span>Charged Move priority</div>
 			</div>
 		</div>
 
@@ -121,6 +126,10 @@
 				<div class="label">CM</div>
 				<div class="bar"></div>
 				<div class="bar-back"></div>
+			</div>
+			<div class="energy-label">
+				<div class="num">0</div>
+				<div>energy</div>
 			</div>
 			<div class="move-bar">
 				<div class="label">CM</div>

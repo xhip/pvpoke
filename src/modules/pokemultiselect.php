@@ -2,23 +2,8 @@
 
 	<?php require_once 'cupselect.php'; ?>
 	<div class="poke-stats">
-		<div class="options">
-			<h3 class="section-title">Options</h3>
-			<select class="shield-select">
-				<option value="0">No shields</option>
-				<option value="1">1 shield</option>
-				<option value="2">2 shields</option>
-			</select>
-			<select class="charged-count-select">
-				<option value="0">0 Charged Moves</option>
-				<option value="1">1 Charged Move</option>
-				<option value="2" selected>2 Charged Moves</option>
-			</select>
-			<div class="check shield-baiting on"><span></span>Bait shields with low-energy moves</div>
-		</div>
-
 		<div class="custom-options">
-			<h3 class="section-title">Pokemon (<span class="poke-count">0</span> / 50)</h3>
+			<h3 class="section-title">Pokemon (<span class="poke-count">0</span> / <span class="poke-max-count">100</span>)</h3>
 			<p>Create or select a group of custom Pokemon below.</p>
 			<div class="rankings-container clear"></div>
 			<button class="add-poke-btn button">+ Add Pokemon</button>
@@ -28,37 +13,47 @@
 			<h3 class="section-title">Quick Fill</h3>
 			<select class="quick-fill-select">
 				<option value="new">New Custom Group</option>
-				<option value="great">Great League Meta</option>
-				<option value="ultra" class="hide">Ultra League Meta</option>
-				<option value="master" class="hide">Master League Meta</option>
-				<option value="jungle">Jungle Cup Meta</option>
-				<option value="rainbow">Rainbow Cup Meta</option>
-				<option value="regionals-1">Season 1 Regionals Meta</option>
-				<option value="nightmare">Nightmare Cup Meta</option>
-				<option value="kingdom">Kingdom Cup Meta</option>
-				<option value="tempest">Tempest Cup Meta</option>
-				<option value="twilight">Twilight Cup Meta</option>
-				<option value="boulder">Boulder Cup Meta</option>			
-				<option value="leaders">Team Leader Pokemon</option>
-
-				<?php
-				// Display custom groups
-
-				foreach($_COOKIE as $key=>$value){
-					if(strpos($key, 'custom_group') !== false){
-						$data = json_decode($value, true);
-
-						echo '<option value="'.$key.'" data="'.$data["data"].'">'.htmlspecialchars($data['name']).'</option>';
-					}
-				}
-
-				?>
+				<option value="great" type="great" class="multi-battle">Great League Meta</option>
+				<option value="ultra" type="ultra" class="hide multi-battle">Ultra League Meta</option>
+				<option value="master" type="master" class="hide multi-battle">Master League Meta</option>
+				<option value="toxic" type="toxic" class="multi-battle">Toxic Cup Meta</option>
+				<option value="rose" type="rose" class="multi-battle">Rose Cup Meta</option>
+				<option value="fusion" type="fusion" class="multi-battle">Fusion Cup Meta</option>
+				<option value="timeless" type="timeless" class="multi-battle">Timeless Cup Meta</option>
+				<option value="ferocious" type="ferocious" class="multi-battle">Ferocious Cup Meta</option>
+				<option value="sinister" type="sinister" class="multi-battle">Sinister Cup Meta</option>
 			</select>
 			<div class="flex quick-fill-buttons">
 				<button class="save-btn save-custom">Save</button>
 				<button class="save-btn save-as hide">Save As</button>
 				<button class="delete-btn hide">Delete</button>
 			</div>
+		</div>
+
+		<div class="options">
+			<h3 class="section-title">Options</h3>
+			<select class="shield-select">
+				<option value="0">No shields</option>
+				<option value="1" selected>1 shield</option>
+				<option value="2">2 shields</option>
+			</select>
+			<select class="charged-count-select">
+				<option value="0">0 Charged Moves</option>
+				<option value="1">1 Charged Move</option>
+				<option value="2" selected="">2 Charged Moves</option>
+			</select>
+			<select class="default-iv-select">
+				<option value="original">Original IV's</option>
+				<option value="gamemaster">Typical IV's (~Rank 500)</option>
+				<option value="overall">Maximum stat product (Rank 1)</option>
+				<option value="atk">Maximum Attack</option>
+				<option value="def">Maximum Defense</option>
+			</select>
+			<select class="pokemon-level-cap-select">
+				<option value="40">Default Level Cap (40)</option>
+				<option value="41">Buddy Level Cap (41)</option>
+			</select>
+			<div class="check shield-baiting on"><span></span>Bait shields with low-energy moves</div>
 		</div>
 	</div>
 </div>

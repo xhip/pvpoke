@@ -13,7 +13,7 @@ function Pokemon(id, i, b){
 
 	// CP modifiers at each level
 
-	var cpms = [0.094,0.135137432,0.16639787,0.192650919,0.21573247,0.236572661,0.25572005,0.273530381,0.29024988,0.306057378,0.3210876,0.335445036,0.34921268,0.362457751,0.3752356,0.387592416,0.39956728,0.411193551,0.4225,0.432926409,0.44310755,0.453059959,0.4627984,0.472336093,0.48168495,0.4908558,0.49985844,0.508701765,0.51739395,0.525942511,0.5343543,0.542635738,0.5507927,0.558830586,0.5667545,0.574569133,0.5822789,0.589887907,0.5974,0.604823665,0.6121573,0.619404122,0.6265671,0.633649143,0.64065295,0.647580967,0.65443563,0.661219252,0.667934,0.674581896,0.6811649,0.687684904,0.69414365,0.70054287,0.7068842,0.713169109,0.7193991,0.725575614,0.7317,0.734741009,0.7377695,0.740785594,0.74378943,0.746781211,0.74976104,0.752729087,0.7556855,0.758630368,0.76156384,0.764486065,0.76739717,0.770297266,0.7731865,0.776064962,0.77893275,0.781790055,0.784637,0.787473608,0.7903];
+	var cpms = [0.093999997,0.16639787,0.21573247,0.25572005,0.29024988,0.3210876,0.34921268,0.37523559,0.39956728,0.42250001,0.44310755,0.46279839,0.48168495,0.49985844,0.51739395,0.53435433,0.55079269,0.56675452,0.58227891,0.59740001,0.61215729,0.62656713,0.64065295,0.65443563,0.667934,0.68116492,0.69414365,0.70688421,0.71939909,0.7317,0.73776948,0.74378943,0.74976104,0.75568551,0.76156384,0.76739717,0.7731865,0.77893275,0.78463697,0.79030001,0.79530001,0.8003,0.8053,0.81029999,0.81529999];
 
 	// Base properties
 	this.dex = data.dex;
@@ -31,7 +31,9 @@ function Pokemon(id, i, b){
 	this.hp = 0;
 	this.startHp = 0;
 	this.startEnergy = 0;
+	this.startCooldown = 0;
 	this.level = 40;
+	this.levelCap = 40;
 	this.cpm = 0.79030001;
 	this.priority = 0; // Charged move priority
 	this.fastMovePool = [];
@@ -56,14 +58,29 @@ function Pokemon(id, i, b){
 	this.damageWindow = 0;
 	this.shields = 0;
 	this.startingShields = 0;
+	this.hasActed = false; // This Pokemon has acted this turn
 
 	this.baitShields = true; // Use low energy attacks to bait shields
-	this.hasActed = false;
+	this.farmEnergy = false; // use fast moves only
+	this.chargedMovesOnly = false; // Only allow Charged Move actions
+
+	// Training battle statistics
+
+	this.battleStats = {};
+	this.roundStats = {};
 
 	// Set legacy moves
 
 	if(data.legacyMoves){
 		this.legacyMoves = data.legacyMoves;
+	}
+
+	// Set tags
+
+	this.tags = [];
+
+	if(data.tags){
+		this.tags = data.tags;
 	}
 
 	// Set battle moves
@@ -88,6 +105,20 @@ function Pokemon(id, i, b){
 		}
 	}
 
+	// Add Return and Frustration for eligible Pokemon
+
+
+	if(data.shadow){
+
+		self.chargedMovePool.push(gm.getMoveById("FRUSTRATION"));
+
+		if(data.level25CP <= b.getCP()){
+			self.chargedMovePool.push(gm.getMoveById("RETURN"));
+		}
+
+		self.legacyMoves.push("FRUSTRATION","RETURN");
+	}
+
 	// Sort moves by ID for consistent order
 
 	self.fastMovePool.sort((a,b) => (a.moveId > b.moveId) ? 1 : ((b.moveId > a.moveId) ? -1 : 0));
@@ -96,7 +127,7 @@ function Pokemon(id, i, b){
 	// Given a target CP, scale to CP, set actual stats, and initialize moves
 
 	this.initialize = function(targetCP, defaultMode){
-		
+
 		defaultMode = typeof defaultMode !== 'undefined' ? defaultMode : "gamemaster";
 
 		this.cp = self.calculateCP();
@@ -143,15 +174,13 @@ function Pokemon(id, i, b){
 				case "gamemaster":
 					if(maxCP == 10000){
 						self.ivs.atk = self.ivs.def = self.ivs.hp = 15;
-						self.level = 40;
-						self.cpm = cpms[(self.level - 1) * 2];
+						self.setLevel(40, false);
 					} else{
 						var combination = data.defaultIVs["cp"+maxCP];
-						self.level = combination[0];
 						self.ivs.atk = combination[1];
 						self.ivs.def = combination[2];
 						self.ivs.hp = combination[3];
-						self.cpm = cpms[(self.level - 1) * 2];
+						self.setLevel(combination[0], false);
 					}
 				break;
 			}
@@ -173,7 +202,6 @@ function Pokemon(id, i, b){
 		}
 
 		// Set moves if unset
-
 
 		if(! self.fastMove){
 			self.autoSelectMoves();
@@ -199,14 +227,15 @@ function Pokemon(id, i, b){
             this.ivs.atk = combinations[0].ivs.atk;
             this.ivs.def = combinations[0].ivs.def;
             this.ivs.hp = combinations[0].ivs.hp;
-            this.level = combinations[0].level;
+            this.setLevel(combinations[0].level, false)
         } else {
             this.ivs.atk = 15;
             this.ivs.def = 15;
             this.ivs.hp = 15;
-            this.level = 40;
+            this.setLevel(self.levelCap, false);
         }
-        this.cpm = cpms[(this.level - 1) * 2];
+
+		var index = this.level - 1;
         this.stats.atk = this.cpm * (this.baseStats.atk+this.ivs.atk);
         this.stats.def = this.cpm * (this.baseStats.def+this.ivs.def);
         this.stats.hp = Math.max(Math.floor(this.cpm * (this.baseStats.hp+this.ivs.hp)), 10);
@@ -214,7 +243,7 @@ function Pokemon(id, i, b){
         this.startHp = this.hp;
 
         this.cp = self.calculateCP();
-		
+
 		self.isCustom = true;
 	}
 
@@ -222,7 +251,7 @@ function Pokemon(id, i, b){
 
 	this.generateIVCombinations = function(sortStat, sortDirection, resultCount, filters) {
 		var targetCP = battle.getCP();
-		var level = 40;
+		var level = self.levelCap;
         var atkIV = 15;
         var defIV = 15;
         var hpIV = 15;
@@ -231,24 +260,27 @@ function Pokemon(id, i, b){
 		var bestStat = 0;
         var cpm = 0;
         var combinations = [];
-		
+
 		if(sortDirection == -1){
 			bestStat = 10000;
 		}
 
 		var floor = 0;
 
-		var untradables = ["mew","celebi","deoxys_attack","deoxys_defense","deoxys_speed","deoxys","jirachi"];
+		var untradables = ["mew","celebi","deoxys_attack","deoxys_defense","deoxys_speed","deoxys","jirachi","darkrai"];
 		var maxNear1500 = ["bastiodon"]
+
+		if(self.hasTag("legendary")){
+			floor = 1;
+		}
 
 		if(untradables.indexOf(self.speciesId) > -1){
 			floor = 10;
 		}
-		
-		if(maxNear1500.indexOf(self.speciesId) > -1){
+
+		if((maxNear1500.indexOf(self.speciesId) > -1)&&(resultCount > 1)){
 			floor = 12;
 		}
-
 
         hpIV = 15;
         while (hpIV >= floor) {
@@ -259,15 +291,29 @@ function Pokemon(id, i, b){
 					level = 0.5;
 					calcCP = 0;
 
-					while((level < 40)&&(calcCP < targetCP)){
+					while((level < self.levelCap)&&(calcCP < targetCP)){
 						level += 0.5;
-						cpm = cpms[(level - 1) * 2];
+
+						if(level % 1 == 0){
+							// Set CPM for whole levels
+							cpm = cpms[level - 1];
+						} else{
+							// Set CPM for half levels
+							cpm = Math.sqrt( (Math.pow(cpms[Math.floor(level-1)], 2) + Math.pow(cpms[Math.ceil(level-1)], 2)) / 2);
+						}
+
 						calcCP = self.calculateCP(cpm, atkIV, defIV, hpIV);
 					}
 
 					if(calcCP > targetCP){
 						level -= 0.5;
-						cpm = cpms[(level - 1) * 2];
+						if(level % 1 == 0){
+							// Set CPM for whole levels
+							cpm = cpms[level - 1];
+						} else{
+							// Set CPM for half levels
+							cpm = Math.sqrt( (Math.pow(cpms[Math.floor(level-1)], 2) + Math.pow(cpms[Math.ceil(level-1)], 2)) / 2);
+						}
 						calcCP = this.calculateCP(cpm, atkIV, defIV, hpIV);
 					}
 
@@ -292,7 +338,7 @@ function Pokemon(id, i, b){
 						};
 
 						var valid = true;
-						
+
 						// This whole jumble won't include combinations that don't beat our best or worst if we just want one result
 
 						if(resultCount == 1){
@@ -305,14 +351,14 @@ function Pokemon(id, i, b){
 									valid = false;
 								}
 							}
-							
+
 							if(valid){
 								bestStat = combination[sortStat];
 							}
 						}
-						
+
 						// Check if a minimum value must be reached
-						
+
 						if(filters){
 							for(var i = 0; i < filters.length; i++){
 								if(combination[filters[i].stat] < filters[i].value){
@@ -337,9 +383,9 @@ function Pokemon(id, i, b){
 
 		return results;
 	}
-	
+
 	// Given a defender, generate a list of Attack values that reach certain breakpoints
-	
+
 	this.calculateBreakpoints = function(defender){
 		var effectiveness = defender.typeEffectiveness[self.fastMove.type];
 		var minAttack = self.generateIVCombinations("atk", -1, 1)[0].atk;
@@ -347,29 +393,29 @@ function Pokemon(id, i, b){
 		var maxDefense = defender.generateIVCombinations("def", 1, 1)[0].def;
 		var minDamage = battle.calculateDamageByStats(minAttack, defender.stats.def, effectiveness, self.fastMove);
 		var maxDamage = battle.calculateDamageByStats(maxAttack, defender.stats.def, effectiveness, self.fastMove);
-		
+
 		var breakpoints = [];
-		
+
 		for(var i = minDamage; i <= maxDamage; i++){
 			var breakpoint = battle.calculateBreakpoint(i, defender.stats.def, effectiveness, self.fastMove);
 			var maxDefenseBreakpoint = battle.calculateBreakpoint(i, maxDefense, effectiveness, self.fastMove);
-			
+
 			if(maxDefenseBreakpoint > maxAttack){
 				maxDefenseBreakpoint = -1;
 			}
-			
+
 			breakpoints.push({
 				damage: i,
 				attack: breakpoint,
 				guaranteedAttack: maxDefenseBreakpoint
 			});
 		}
-		
+
 		return breakpoints;
 	}
-	
+
 	// Given an attacker, generate a list of Defense values that reach certain bulkpoints
-	
+
 	this.calculateBulkpoints = function(attacker){
 		var effectiveness = self.typeEffectiveness[attacker.fastMove.type];
 		var minDefense = self.generateIVCombinations("def", -1, 1)[0].def;
@@ -377,24 +423,24 @@ function Pokemon(id, i, b){
 		var maxAttack = attacker.generateIVCombinations("atk", 1, 1)[0].atk;
 		var minDamage = battle.calculateDamageByStats(attacker.stats.atk, maxDefense, effectiveness, attacker.fastMove);
 		var maxDamage = battle.calculateDamageByStats(attacker.stats.atk, minDefense, effectiveness, attacker.fastMove);
-		
+
 		var breakpoints = [];
-		
+
 		for(var i = minDamage; i <= maxDamage; i++){
 			var bulkpoint = battle.calculateBulkpoint(i, attacker.stats.atk, effectiveness, attacker.fastMove);
 			var maxAttackBulkpoint = battle.calculateBulkpoint(i, maxAttack, effectiveness, attacker.fastMove);
-			
+
 			if(maxAttackBulkpoint > maxDefense){
 				maxAttackBulkpoint = -1;
 			}
-			
+
 			breakpoints.push({
 				damage: i,
 				defense: bulkpoint,
 				guaranteedDefense: maxAttackBulkpoint
 			});
 		}
-		
+
 		return breakpoints;
 	}
 
@@ -432,16 +478,44 @@ function Pokemon(id, i, b){
 
 			self.activeChargedMoves.sort((a,b) => (a.energy > b.energy) ? 1 : ((b.energy > a.energy) ? -1 : 0));
 
-			self.bestChargedMove = self.activeChargedMoves[0];
+			self.fastestChargedMove = self.activeChargedMoves[0];
 
-			for(var i = 0; i < self.activeChargedMoves.length; i++){
-				var move = self.activeChargedMoves[i];
+			if(self.activeChargedMoves.length > 1){
 
-				if(move.dpe - self.bestChargedMove.dpe > .03){
-					self.bestChargedMove = self.activeChargedMoves[i];
+				// If both moves cost the same energy and one has a buff effect, prioritize the buffing move
+
+				if((self.activeChargedMoves[1].energy == self.activeChargedMoves[0].energy)&&(self.activeChargedMoves[1].buffs)&&(! self.activeChargedMoves[1].selfDebuffing)){
+					var move = self.activeChargedMoves[0];
+					self.activeChargedMoves.splice(0, 1);
+					self.activeChargedMoves.push(move);
+				}
+
+				// If the cheaper move is a self debuffing move and the other move is a close non-debuffing move, prioritize the non-debuffing move
+
+				if((self.activeChargedMoves[1].energy - self.activeChargedMoves[0].energy <= 10)&&(self.activeChargedMoves[0].selfAttackDebuffing)&&(! self.activeChargedMoves[1].selfDebuffing)){
+					var move = self.activeChargedMoves[0];
+					self.activeChargedMoves.splice(0, 1);
+					self.activeChargedMoves.push(move);
 				}
 			}
 
+			self.bestChargedMove = self.activeChargedMoves[0];
+			self.bestChargedMove.dpe = self.bestChargedMove.damage / self.bestChargedMove.energy;
+
+			for(var i = 0; i < self.activeChargedMoves.length; i++){
+				var move = self.activeChargedMoves[i];
+				move.dpe = move.damage / move.energy;
+				
+				// Use moves that have higher DPE
+				if(move.dpe - self.bestChargedMove.dpe > .03){
+					self.bestChargedMove = self.activeChargedMoves[i];
+				}
+				
+				// When DPE is close, favor moves with guaranteed buff effects
+				if((Math.abs(move.dpe - self.bestChargedMove.dpe) < .03)&&(self.bestChargedMove.buffs)&&(move.buffs)&&(move.buffApplyChance > self.bestChargedMove.buffApplyChance)&&(! move.selfDebuffing)){
+					self.bestChargedMove = self.activeChargedMoves[i];
+				}
+			}
 
 		} else{
 			self.bestChargedMove = null;
@@ -451,9 +525,9 @@ function Pokemon(id, i, b){
 	// Set a moves stab and damage traits given an opponent
 
 	this.initializeMove = function(move){
-		var opponent = battle.getOpponent(this.index);
+		var opponent = battle.getOpponent(self.index);
 
-		move.stab = this.getStab(move);
+		move.stab = self.getStab(move);
 
 		if(opponent){
 			move.damage = battle.calculateDamage(self, opponent, move);
@@ -548,6 +622,12 @@ function Pokemon(id, i, b){
 			var move = chargedMoves[i];
 
 			move.dpe *= 1 / move.energy;
+
+			// If this move has a guaranteed stat effect, consider that as well
+
+			if((move.buffApplyChance)&&(move.buffApplyChance == 1)){
+				move.dpe *= 2;
+			}
 		}
 
 		if(chargedMoves.length > 0){
@@ -562,7 +642,8 @@ function Pokemon(id, i, b){
 
 	// Given a type string, move id, and charged move index, set a specific move
 
-	this.selectMove = function(type, id, index){
+	this.selectMove = function(type, id, index, disallowCustomAddition){
+		var moveFound = false;
 		var arr = this.fastMovePool;
 
 		if(type == "charged"){
@@ -581,10 +662,12 @@ function Pokemon(id, i, b){
 				if(type == "fast"){
 					move = arr[i];
 					this.fastMove = move;
+					moveFound = true;
 					break;
 				} else{
 					move = arr[i];
 					this.chargedMoves[index] = move;
+					moveFound = true;
 					break;
 				}
 			}
@@ -599,8 +682,6 @@ function Pokemon(id, i, b){
 		// If identical charged moves are selected, select first available
 
 		if((type == "charged") && (this.chargedMoves.length > 1)){
-
-
 			var nonIndex = 0;
 
 			if(index == 0){
@@ -616,6 +697,52 @@ function Pokemon(id, i, b){
 				}
 			}
 		}
+
+		// If the move wasn't found, add it to the movepool
+		if((! disallowCustomAddition)&&(! moveFound)){
+			self.addNewMove(id, arr, true, type, index);
+		}
+	}
+
+	// Obtain a Pokemon's recommended moveset from the rankings and select them
+
+	this.selectRecommendedMoveset = function(category){
+		category = typeof category !== 'undefined' ? category : "overall";
+
+		var cupName = "all";
+
+		if(battle.getCup()){
+			cupName = battle.getCup().name;
+		}
+
+		var key = cupName + category + battle.getCP();
+
+		if(! gm.rankings[key]){
+			console.log("Ranking data not loaded yet");
+			return;
+		}
+
+		var rankings = gm.rankings[key];
+
+		for(var i = 0; i < rankings.length; i++){
+			var r = rankings[i];
+
+			if(r.speciesId == self.speciesId){
+				var moveIndexes = r.moveStr.split("-");
+
+				self.selectMove("fast", self.fastMovePool[moveIndexes[0]].moveId);
+				self.selectMove("charged", self.chargedMovePool[moveIndexes[1]-1].moveId, 0);
+
+				if(moveIndexes[2] != 0){
+					self.selectMove("charged", self.chargedMovePool[moveIndexes[2]-1].moveId, 1);
+				}
+
+				// Assign overall score for reference
+				self.overall = r.score;
+				self.scores = r.scores;
+				break;
+			}
+		}
 	}
 
 	// Add new move to the supplied move pool, with a flag to automatically select the new move
@@ -623,12 +750,15 @@ function Pokemon(id, i, b){
 	this.addNewMove = function(id, movepool, selectNewMove, moveType, index){
 		var move = gm.getMoveById(id);
 
-		move.isCustom = true;
+		if(! move){
+			return false;
+		}
 
+		move.isCustom = true;
 		movepool.push(move);
 
 		if(selectNewMove){
-			self.selectMove(moveType, id, index)
+			self.selectMove(moveType, id, index, true)
 		}
 
 		var props = {
@@ -732,14 +862,41 @@ function Pokemon(id, i, b){
 	// Resets Pokemon prior to battle
 
 	this.reset = function(){
-
 		self.hp = self.startHp;
 		self.energy = self.startEnergy;
-		self.cooldown = 0;
+		self.cooldown = self.startCooldown;
 		self.damageWindow = 0;
 		self.shields = self.startingShields;
 		self.statBuffs = [self.startStatBuffs[0], self.startStatBuffs[1]];
 		self.resetMoves();
+	}
+
+	// Fully reset all Pokemon stats
+
+	this.fullReset = function(){
+		self.startHp = self.stats.hp;
+		self.startEnergy = 0;
+		self.startCooldown = 0;
+		self.startStatBuffs = [0, 0];
+
+		self.reset();
+	}
+
+	// Reset stats for emulated battles
+
+	this.resetBattleStats = function(){
+		self.battleStats = {
+			damage: 0,
+			shieldsBurned: 0,
+			shieldsUsed: 0,
+			damageBlocked: 0,
+			damageFromShields: 0,
+			shieldsFromShields: 0,
+			switchAdvantages: 0,
+			energyGained: 0,
+			energyUsed: 0,
+			chargedDamage: 0
+		};
 	}
 
 	this.setShields = function(amount){
@@ -767,13 +924,24 @@ function Pokemon(id, i, b){
 		this.statBuffs = [buffs[0], buffs[1]];
 	}
 
-	this.setLevel = function(amount){
-		this.level = amount;
-		var index = (amount - 1) * 2;
+	this.setLevel = function(amount, initialize){
+		initialize = typeof initialize !== 'undefined' ? initialize : true;
 
-		this.cpm = cpms[index];
-		this.isCustom = true;
-		this.initialize(false);
+		this.level = amount;
+		var index = (amount - 1);
+
+		if(index % 1 == 0){
+			// Set CPM for whole levels
+			this.cpm = cpms[index];
+		} else{
+			// Set CPM for half levels
+			this.cpm = Math.sqrt( (Math.pow(cpms[Math.floor(index)], 2) + Math.pow(cpms[Math.ceil(index)], 2)) / 2);
+		}
+
+		if(initialize){
+			this.isCustom = true;
+			this.initialize(false);
+		}
 	}
 
 	this.setIV = function(iv, amount){
@@ -847,5 +1015,82 @@ function Pokemon(id, i, b){
 		}
 
 		return Math.floor( (500 * ((opponent.stats.hp - opponent.hp) / opponent.stats.hp)) + (500 * (self.hp / self.stats.hp)))
+	}
+
+	// Return whether or not this Pokemon has a specific tag
+
+	this.hasTag = function(tag){
+		return (self.tags.indexOf(tag) > -1);
+	}
+
+	// Output a string of numbers for URL building and recreating a Pokemon
+
+	this.generateURLPokeStr = function(context){
+		var pokeStr = self.speciesId;
+
+		if((self.isCustom)||(self.startStatBuffs[0] != 0)||(self.startStatBuffs[1] != 0)){
+			var arr = [self.level];
+
+			arr.push(self.ivs.atk, self.ivs.def, self.ivs.hp, self.startStatBuffs[0]+gm.data.settings.maxBuffStages, self.startStatBuffs[1]+gm.data.settings.maxBuffStages, self.baitShields ? 1 : 0);
+
+			// Stat buffs are increased by 4 so the URL doesn't have to deal with parsing negative numbers
+
+			var str = arr.join("-");
+
+			pokeStr += "-" + str;
+		}
+
+		if(self.priority != 0){
+			pokeStr += "-p";
+		}
+
+		if(context == "team-builder"){
+			pokeStr += "-m-" + self.generateURLMoveStr();
+		}
+
+		return pokeStr;
+	}
+
+
+	// Output a string of numbers for URL building and recreating a moveset
+
+	this.generateURLMoveStr = function(){
+		var moveStr = '';
+
+		var fastMoveIndex = self.fastMovePool.indexOf(self.fastMove);
+		var chargedMove1Index = self.chargedMovePool.indexOf(self.chargedMoves[0])+1;
+		var chargedMove2Index = self.chargedMovePool.indexOf(self.chargedMoves[1])+1;
+
+		moveStr = fastMoveIndex + "-" + chargedMove1Index + "-" + chargedMove2Index;
+
+		// Check for any custom moves;
+
+		if(self.fastMove.isCustom){
+			moveStr += "-" + self.fastMove.moveId;
+		}
+
+		for(var i = 0; i < self.chargedMoves.length; i++){
+			if(self.chargedMoves[i].isCustom){
+				moveStr += "-" + self.chargedMoves[i].moveId + "-" + i;
+			}
+		}
+
+		return moveStr;
+	}
+
+	// Output a string of the Pokemon's moveset abbreviation
+
+	this.generateMovesetStr = function(){
+		var moveAbbreviationStr = self.fastMove.abbreviation;
+
+		for(var i = 0; i < self.chargedMoves.length; i++){
+			if(i == 0){
+				moveAbbreviationStr += "+" + self.chargedMoves[i].abbreviation;
+			} else{
+				moveAbbreviationStr += "/" + self.chargedMoves[i].abbreviation;
+			}
+		}
+
+		return moveAbbreviationStr;
 	}
 }
